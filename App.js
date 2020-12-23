@@ -1,19 +1,22 @@
 import React, { Component } from 'react';
 import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { createAppContainer } from 'react-navigation';
+import { createStackNavigator } from 'react-navigation-stack';
 
-export default class App extends Component {
-  constructor(){
-    super();
+class LoginScreen extends Component {  
+  constructor(props) {
+    super(props);
     this.state = { hidePassword: true }
   }
   login = () => {
-
+    alert("Entrar");
   }
   managePasswordVisibility = () => {
     this.setState({ hidePassword: !this.state.hidePassword });
   }
   render() {
+    const navigation = this.props;
     return (
       <View style={ styles.container }>
         <Image
@@ -37,17 +40,59 @@ export default class App extends Component {
             secureTextEntry = { this.state.hidePassword }
             onChangeText={(text) => this.setState({text})}  
           />  
-            <TouchableOpacity activeOpacity = { 0.8 } style = { styles.visibilityBtn } onPress = { this.managePasswordVisibility }>
+          <TouchableOpacity activeOpacity = { 0.8 } style = { styles.visibilityBtn } onPress = { this.managePasswordVisibility }>
               <Ionicons name={ ( this.state.hidePassword ) ? "eye"  : "eye-off" } size={32} color="#98A406" /> 
             </TouchableOpacity>   
         </View>  
         <TouchableOpacity onPress={this.login} style={styles.appButtonContainer}>
           <Text style={styles.appButtonText}>Entrar</Text>
+        </TouchableOpacity>  
+        <TouchableOpacity  onPress={()=>this.props.navigation.navigate('Remember')} style={{ margin: 30 }}>
+          <Text style={{ color: "#98A406" }}>Recordar datos de acceso</Text>
         </TouchableOpacity>   
+      </View>
+    );
+  } 
+}
+
+class RememberPass extends Component {
+  sendMail = () => {
+    alert("Enviar correo");
+  }
+  render() {
+    return (
+      <View style={ styles.container }>
+          <Text>Indique el correo de la empresa</Text>
+          <Text style={{margin:20}}>para obtener los datos de acceso a la plataforma</Text>
+          <TextInput  
+            style = { styles.textBox }
+            placeholder="Correo"  
+            onChangeText={(text) => this.setState({text})}  
+          /> 
+          <TouchableOpacity onPress={this.sendMail} style={styles.appButtonContainer}>
+          <Text style={styles.appButtonText}>Enviar</Text>
+        </TouchableOpacity>  
       </View>
     );
   }
 }
+
+const AppNavigator = createStackNavigator({
+  Login: {
+    screen: LoginScreen,
+    navigationOptions: {
+      header: null
+    }
+  },
+  Remember: {
+    screen: RememberPass,
+    navigationOptions: {
+      title: "Recordar datos de acceso"
+    }
+  },
+});
+
+export default createAppContainer(AppNavigator);
 
 const styles = StyleSheet.create({
   container: {
