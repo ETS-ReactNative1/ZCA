@@ -1,10 +1,11 @@
 import React, { Component } from 'react';
-import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image, Alert, ActivityIndicator, SwipeableListView} from 'react-native';
+import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image, Alert, ActivityIndicator, SwipeableListView, Linking} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-community/async-storage'
+import * as Print from 'expo-print';
 
 class HomeScreen extends Component { 
 
@@ -43,12 +44,21 @@ class HomeScreen extends Component {
     await AsyncStorage.getItem("token").then((value) => {
       this.token = value;
     })
-    this.setState({ url: "https://admin.dicloud.es/zca/?company="+this.alias.toLowerCase()+"&user="+this.user.toLowerCase()+"&pass="+this.password.toLowerCase()+"&token="+this.token })
-    console.log(this.state.url)
+    this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.alias+"&user="+this.user+"&pass="+this.password })
+  }
+
+  goIndex = () => {
+    this.setState({ url: "https://admin.dicloud.es/zca/index.asp" })  
+    console.log("goIndex:"+this.state.url)
   }
 
   goHelp = () => {
     this.setState({ url: "https://admin.dicloud.es/zca/tutorial/index.html" })
+  }
+
+  logout = async () => {
+    await AsyncStorage.setItem('lastUser', "false");
+    this.props.navigation.navigate('Login');
   }
 
   onBack() {
@@ -66,7 +76,7 @@ class HomeScreen extends Component {
         <Ionicons 
             name="arrow-back" 
             onPress={this.onBack.bind(this)}
-            size={40} 
+            size={35} 
             color="white"
             style={styles.navBarButton}
           />
@@ -74,7 +84,14 @@ class HomeScreen extends Component {
           <Ionicons 
             name="help-sharp" 
             onPress={this.goHelp}
-            size={32} 
+            size={35} 
+            color="white"
+            style={styles.navBarButton}
+          />
+          <Ionicons 
+            name="home" 
+            onPress={this.goIndex}
+            size={30} 
             color="white"
             style={styles.navBarButton}
           />
@@ -86,12 +103,6 @@ class HomeScreen extends Component {
           startInLoadingState={true}
           javaScriptEnabled={true}
           domStorageEnabled={true}
-          renderLoading={() => (
-            <ActivityIndicator
-              color='#337BB7'
-              size='large'
-            />
-          )}
           setSupportMultipleWindows={false}
           allowsBackForwardNavigationGestures
           onNavigationStateChange={(navState) => {
@@ -100,8 +111,22 @@ class HomeScreen extends Component {
             });
           }}
           onShouldStartLoadWithRequest={(event) => {
-            if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps")) {
-              Linking.openURL(event.url)
+            if (event.url.includes("login.asp")) {
+              this.logout()
+              return false;
+            } else if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps")) {
+              Linking.canOpenURL(event.url).then((value) => {
+                if (value) {
+                  Linking.openURL(event.url)
+                }
+              })
+              return false
+            } else if (event.url.includes("facebook")) {
+              Linking.canOpenURL(event.url).then((value) => {
+                if (value) {
+                  Linking.openURL(event.url)
+                }
+              }) 
               return false
             } else {
               return true
@@ -193,9 +218,7 @@ class LoginScreen extends Component {
             this.handleError(error)
           }
         })
-        .catch((error) => {
-          alert("Error: " + error);
-        });
+        .catch(() => {});
     } else {
       this.showAlert("Complete todos los campos")
     }
@@ -274,11 +297,11 @@ class MainScreen extends Component {
   }
 
   init = async () => {
-    const lastUser = await AsyncStorage.getItem('lastUser');
-    if (lastUser == null) {
-      lastUser = false;
-    }
-    if (lastUser) {
+    const lastUser = await AsyncStorage.getItem('lastUser').catch(() => {
+      lastUser = "false";
+    });
+
+    if (lastUser == "true") {
       this.props.navigation.navigate('Home')
     } else {
       this.props.navigation.navigate('Login')
