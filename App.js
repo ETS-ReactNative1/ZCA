@@ -1,11 +1,10 @@
 import React, { Component } from 'react';
-import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image, Alert, ActivityIndicator, SwipeableListView, Linking} from 'react-native';
+import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image, Alert, ActivityIndicator, Linking} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import { WebView } from 'react-native-webview';
-import AsyncStorage from '@react-native-community/async-storage'
-import * as Print from 'expo-print';
+import AsyncStorage from '@react-native-community/async-storage';
 
 class HomeScreen extends Component { 
 
@@ -24,7 +23,7 @@ class HomeScreen extends Component {
     super(props);
     const { navigation } = this.props
     this.state = {
-      url: ""
+      url: "https://admin.dicloud.es/zca/loginverifica.asp"
     }
   } 
 
@@ -56,9 +55,47 @@ class HomeScreen extends Component {
     this.setState({ url: "https://admin.dicloud.es/zca/tutorial/index.html" })
   }
 
-  logout = async () => {
+  saveLogout =  async (state) => {
     await AsyncStorage.setItem('lastUser', "false");
-    this.props.navigation.navigate('Login');
+    if (!state) {
+      await AsyncStorage.setItem('saveData', "false");
+      this.props.navigation.push('Login');
+    } else {
+      await AsyncStorage.setItem('saveData', "true");
+      this.props.navigation.navigate('Login');
+    }
+  }
+
+  logout = async () => {
+    const AsyncAlert = (title, msg) => new Promise((resolve) => {
+      Alert.alert(
+        "Procedo a desconectar",
+        "¿Mantengo tu identificación actual?",
+        [
+          {
+            text: 'Sí',
+            onPress: () => {
+              resolve(this.saveLogout(true));
+            },
+          },
+          {
+            text: 'No',
+            onPress: () => {
+              resolve(this.saveLogout(false));
+            },
+          },
+          {
+            text: 'Cancelar',
+            onPress: () => {
+              resolve('Cancel');
+            },
+          },
+        ],
+        { cancelable: false },
+      );
+    });
+    
+    await AsyncAlert();
   }
 
   onBack() {
@@ -71,11 +108,17 @@ class HomeScreen extends Component {
   render(){
     return(
       <View style={{flex: 1}}>
-      <View style={{alignItems: 'center', justifyContent: 'center', height: 90, backgroundColor:"#337BB7", 
+      <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", 
       flexDirection:'row', textAlignVertical: 'center'}}>
         <Ionicons 
             name="arrow-back" 
             onPress={this.onBack.bind(this)}
+            size={35} 
+            color="white"
+            style={styles.navBarButton}
+          />
+          <Ionicons 
+            name=""
             size={35} 
             color="white"
             style={styles.navBarButton}
@@ -114,21 +157,15 @@ class HomeScreen extends Component {
             if (event.url.includes("login.asp")) {
               this.logout()
               return false;
-            } else if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps")) {
+            } else if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps") || event.url.includes("facebook")) {
               Linking.canOpenURL(event.url).then((value) => {
                 if (value) {
                   Linking.openURL(event.url)
                 }
               })
               return false
-            } else if (event.url.includes("facebook")) {
-              Linking.canOpenURL(event.url).then((value) => {
-                if (value) {
-                  Linking.openURL(event.url)
-                }
-              }) 
-              return false
             } else {
+              this.setState({ url: event.url })  
               return true
             }
           }}
@@ -143,6 +180,26 @@ class LoginScreen extends Component {
     super(props);
     this.state = { hidePassword: true }
   }
+
+  async componentDidMount(){
+    const saveData = await AsyncStorage.getItem('saveData').catch(() => {
+       saveData = "false";
+     });
+     if (saveData == "true") {
+       await AsyncStorage.getItem("alias").then((value) => {
+         this.alias = value;
+       })
+       this.setState({alias:this.alias})
+       await AsyncStorage.getItem("user").then((value) => {
+         this.user = value;
+       })
+       this.setState({user:this.user})
+       await AsyncStorage.getItem("password").then((value) => {
+         this.pass = value;
+       })
+       this.setState({pass:this.pass})
+     }
+   }
 
   showAlert = (message) => {
     Alert.alert(
@@ -239,11 +296,13 @@ class LoginScreen extends Component {
           style = { styles.textBox }
           placeholder="Alias"  
           onChangeText={(alias) => this.setState({alias})}  
+          value={this.state.alias}
         /> 
         <TextInput  
           style = { styles.textBox }
           placeholder="Usuario"  
           onChangeText={(user) => this.setState({user})}  
+          value={this.state.user}
         /> 
         <View style = { styles.textBoxBtnHolder }>
           <TextInput  
@@ -251,6 +310,7 @@ class LoginScreen extends Component {
             placeholder="Contraseña"
             secureTextEntry = { this.state.hidePassword }
             onChangeText={(pass) => this.setState({pass})}  
+            value={this.state.pass}
           />  
           <TouchableOpacity activeOpacity = { 0.8 } style = { styles.visibilityBtn } onPress = { this.managePasswordVisibility }>
               <Ionicons name={ ( this.state.hidePassword ) ? "eye"  : "eye-off" } size={32} color="#98A406" /> 
@@ -337,7 +397,8 @@ const AppNavigator = createStackNavigator({
   Remember: {
     screen: RememberPass,
     navigationOptions: {
-      title: "Recordar datos de acceso"
+      title: "Recordar datos de acceso",
+      headerStyle:{ elevation:0,}
     }
   },
   Home: {
