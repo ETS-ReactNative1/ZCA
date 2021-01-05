@@ -5,6 +5,7 @@ import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-community/async-storage';
+import { BackHandler } from 'react-native';
 
 class HomeScreen extends Component { 
 
@@ -28,6 +29,7 @@ class HomeScreen extends Component {
   } 
 
   async componentDidMount(){
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
     await AsyncStorage.getItem("alias").then((value) => {
       this.alias = value;
     })
@@ -44,6 +46,14 @@ class HomeScreen extends Component {
       this.token = value;
     })
     this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.alias+"&user="+this.user+"&pass="+this.password })
+  }
+
+  handleBackButton = ()=>{
+    if (this.state.canGoBack) {
+      this.webView.ref.goBack();
+      return true;
+    }
+    return true;
   }
 
   goIndex = () => {
@@ -98,28 +108,15 @@ class HomeScreen extends Component {
     await AsyncAlert();
   }
 
-  onBack() {
-    if (this.state.canGoBack) {
-      this.webView.ref.goBack();
-      return true;
-    }
-  }
-
   render(){
     return(
       <View style={{flex: 1}}>
       <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", 
       flexDirection:'row', textAlignVertical: 'center'}}>
-        <Ionicons 
-            name="arrow-back" 
-            onPress={this.onBack.bind(this)}
-            size={35} 
-            color="white"
-            style={styles.navBarButton}
-          />
           <Ionicons 
-            name=""
-            size={35} 
+            name="home" 
+            onPress={this.goIndex}
+            size={25} 
             color="white"
             style={styles.navBarButton}
           />
@@ -127,13 +124,6 @@ class HomeScreen extends Component {
           <Ionicons 
             name="help-sharp" 
             onPress={this.goHelp}
-            size={35} 
-            color="white"
-            style={styles.navBarButton}
-          />
-          <Ionicons 
-            name="home" 
-            onPress={this.goIndex}
             size={30} 
             color="white"
             style={styles.navBarButton}
@@ -152,6 +142,18 @@ class HomeScreen extends Component {
             this.setState({
               canGoBack: navState.canGoBack
             });
+          }}
+          onError={err => {
+            this.setState({ err_code: err.nativeEvent.code })
+          }}
+          renderError={()=> {
+            if (this.state.err_code == -2){
+              return (
+                <View style={{ backgroundColor: "white", flex: 1, height:"100%", width: "100%", position:'absolute', justifyContent: "center", alignItems: "center" }}>
+                  <Text>No hay conexión a Internet</Text>
+                </View>
+              );
+            }
           }}
           onShouldStartLoadWithRequest={(event) => {
             if (event.url.includes("login.asp")) {
@@ -244,12 +246,13 @@ class LoginScreen extends Component {
       this.showAlert(error);
   }
 
-  async goHome(alias,user,pass,fullname,token) {
+  async goHome(alias,user,pass,fullname,idempresa,token) {
     await AsyncStorage.setItem('lastUser', "true");
     await AsyncStorage.setItem('alias', alias);
     await AsyncStorage.setItem('user', user);
     await AsyncStorage.setItem('password', pass);
     await AsyncStorage.setItem('fullname', fullname);
+    await AsyncStorage.setItem('idempresa', idempresa + "");
     await AsyncStorage.setItem('token', token);
     this.props.navigation.navigate('Home')
   }
@@ -268,14 +271,15 @@ class LoginScreen extends Component {
         .then((responseJson) => {
           let error = JSON.stringify(responseJson.error_code)
           if (error == 0) {
+            console.log(JSON.stringify(responseJson))
             let fullname = JSON.parse(JSON.stringify(responseJson.fullName))
             let token = JSON.parse(JSON.stringify(responseJson.token))
-            this.goHome(alias,user,pass,fullname,token)
+            let idempresa = JSON.parse(JSON.stringify(responseJson.idempresa))
+            this.goHome(alias,user,pass,fullname,idempresa,token)
           } else {
             this.handleError(error)
           }
-        })
-        .catch(() => {});
+        }).catch(() => {});
     } else {
       this.showAlert("Complete todos los campos")
     }
@@ -283,6 +287,16 @@ class LoginScreen extends Component {
 
   managePasswordVisibility = () => {
     this.setState({ hidePassword: !this.state.hidePassword });
+  }
+
+  goRememberPass = async () => {
+    let alias=this.state.alias;
+    if (alias == undefined || alias == "") {
+      this.showAlert("Debe introducir su alias");
+    } else {
+      await AsyncStorage.setItem('alias', alias);
+      this.props.navigation.navigate('Remember')
+    }
   }
   
   render() {
@@ -319,7 +333,7 @@ class LoginScreen extends Component {
         <TouchableOpacity onPress={this.login} style={styles.appButtonContainer}>
           <Text style={styles.appButtonText}>Entrar</Text>
         </TouchableOpacity>  
-        <TouchableOpacity  onPress={()=>this.props.navigation.navigate('Remember')} style={{ margin: 30 }}>
+        <TouchableOpacity  onPress={()=>this.goRememberPass()} style={{ margin: 30 }}>
           <Text style={{ color: "#98A406" }}>Recordar datos de acceso</Text>
         </TouchableOpacity>   
       </View>
@@ -328,27 +342,72 @@ class LoginScreen extends Component {
 }
 
 class RememberPass extends Component {
-  sendMail = () => {
-    alert("Enviar correo");
+
+  idempresa = ""
+  alias = ""
+  webView = {
+    ref: null,
   }
+
+  constructor(props) {
+    super(props);
+    this.state = {}
+  }
+
+  handleBackButton = ()=>{
+    this.props.navigation.navigate('Login')
+    return true;
+  }
+
+  async componentDidMount(){
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+    await AsyncStorage.getItem("idempresa").then((value) => {
+      this.idempresa = value;
+    })
+    await AsyncStorage.getItem("alias").then((value) => {
+      this.alias = value;
+    })
+    if (this.idempresa != null) {
+      this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?idempresa=" + this.idempresa })
+    } else {
+      this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?alias=" + this.alias })
+    }
+  }
+
   render() {
     return (
-      <View style={ styles.container }>
-          <Text>Indique el correo de la empresa</Text>
-          <Text style={{margin:20}}>para obtener los datos de acceso a la plataforma</Text>
-          <TextInput  
-            style = { styles.textBox }
-            placeholder="Correo"  
-            onChangeText={(text) => this.setState({text})}  
-          /> 
-          <TouchableOpacity onPress={this.sendMail} style={styles.appButtonContainer}>
-          <Text style={styles.appButtonText}>Enviar</Text>
-        </TouchableOpacity>  
+      <View style={{flex: 1}}>
+        <WebView
+          ref={(webView) => { this.webView.ref = webView; }}
+          originWhitelist={['*']}
+          source={{ uri: this.state.url }}
+          startInLoadingState={true}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          setSupportMultipleWindows={false}
+          allowsBackForwardNavigationGestures
+          onNavigationStateChange={(navState) => {
+            this.setState({
+              canGoBack: navState.canGoBack
+            });
+          }}
+          onError={err => {
+            this.setState({ err_code: err.nativeEvent.code })
+          }}
+          renderError={()=> {
+            if (this.state.err_code == -2){
+              return (
+                <View style={{ backgroundColor: "white", flex: 1, height:"100%", width: "100%", position:'absolute', justifyContent: "center", alignItems: "center" }}>
+                  <Text>No hay conexión a Internet</Text>
+                </View>
+              );
+            }
+          }}
+        />
       </View>
     );
   }
 }
-
 
 class MainScreen extends Component {
   constructor(props) {
@@ -360,7 +419,6 @@ class MainScreen extends Component {
     const lastUser = await AsyncStorage.getItem('lastUser').catch(() => {
       lastUser = "false";
     });
-
     if (lastUser == "true") {
       this.props.navigation.navigate('Home')
     } else {
@@ -397,8 +455,7 @@ const AppNavigator = createStackNavigator({
   Remember: {
     screen: RememberPass,
     navigationOptions: {
-      title: "Recordar datos de acceso",
-      headerStyle:{ elevation:0,}
+      header: null
     }
   },
   Home: {
