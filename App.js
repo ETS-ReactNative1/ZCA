@@ -58,7 +58,6 @@ class HomeScreen extends Component {
 
   goIndex = () => {
     this.setState({ url: "https://admin.dicloud.es/zca/index.asp" })  
-    console.log("goIndex:"+this.state.url)
   }
 
   goHelp = () => {
@@ -271,7 +270,6 @@ class LoginScreen extends Component {
         .then((responseJson) => {
           let error = JSON.stringify(responseJson.error_code)
           if (error == 0) {
-            console.log(JSON.stringify(responseJson))
             let fullname = JSON.parse(JSON.stringify(responseJson.fullName))
             let token = JSON.parse(JSON.stringify(responseJson.token))
             let idempresa = JSON.parse(JSON.stringify(responseJson.idempresa))
@@ -290,11 +288,21 @@ class LoginScreen extends Component {
   }
 
   goRememberPass = async () => {
-    let alias=this.state.alias;
-    if (alias == undefined || alias == "") {
-      this.showAlert("Debe introducir su alias");
+    let alias = this.state.alias;
+    let user = this.state.user;
+    let idempresa = null;
+    await AsyncStorage.getItem("idempresa").then((value) => {
+      idempresa = value;
+    })
+    if (idempresa == null) {
+      if (alias == undefined || alias == "" || user == undefined || user == "" ) {
+        this.showAlert("Debe introducir su alias y usuario");
+      } else {
+        await AsyncStorage.setItem('alias', alias);
+        await AsyncStorage.setItem('user', user);
+        this.props.navigation.navigate('Remember')
+      }
     } else {
-      await AsyncStorage.setItem('alias', alias);
       this.props.navigation.navigate('Remember')
     }
   }
@@ -345,6 +353,7 @@ class RememberPass extends Component {
 
   idempresa = ""
   alias = ""
+  user = ""
   webView = {
     ref: null,
   }
@@ -367,10 +376,13 @@ class RememberPass extends Component {
     await AsyncStorage.getItem("alias").then((value) => {
       this.alias = value;
     })
+    await AsyncStorage.getItem("user").then((value) => {
+      this.user = value;
+    })
     if (this.idempresa != null) {
       this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?idempresa=" + this.idempresa })
     } else {
-      this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?alias=" + this.alias })
+      this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?alias=" + this.user.toLowerCase() + "&aliasemp=" + this.alias.toLowerCase() })
     }
   }
 
