@@ -4,8 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
 import { WebView } from 'react-native-webview';
-import AsyncStorage from '@react-native-community/async-storage';
-import { BackHandler } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing'
+import * as FileSystem from 'expo-file-system'
 
 class HomeScreen extends Component { 
 
@@ -19,90 +21,115 @@ class HomeScreen extends Component {
     canGoBack: false,
     ref: null,
   }
-  state = {
-    url: ""
-  }
 
   constructor(props) {
     super(props);
+    const { navigation } = this.props
     this.state = {
-      url: this.props.navigation.state.params.url
+      url: ""
     }
-    this.setWebview()
   } 
 
-  setWebview =  async () => {
-    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
- }
-
-  handleBackButton = ()=>{
-    if (this.state.canGoBack) {
-      this.webView.ref.goBack();
-      return true;
-    }
-    return true;
+  async componentDidMount(){
+    await AsyncStorage.getItem("alias").then((value) => {
+      this.alias = value;
+    })
+    await AsyncStorage.getItem("user").then((value) => {
+      this.user = value;
+    })
+    await AsyncStorage.getItem("password").then((value) => {
+      this.password = value;
+    })
+    await AsyncStorage.getItem("fullname").then((value) => {
+      this.fullname = value;
+    })
+    await AsyncStorage.getItem("token").then((value) => {
+      this.token = value;
+    })
+    this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.alias+"&user="+this.user+"&pass="+this.password })
   }
 
   goIndex = () => {
-    this.setState({ url: this.props.navigation.state.params.url })
+    this.setState({ url: "https://admin.dicloud.es/zca/index.asp" })  
   }
 
   goHelp = () => {
     this.setState({ url: "https://admin.dicloud.es/zca/tutorial/index.html" })
   }
 
-  saveLogout =  async (state) => {
+  saveLogout = async (save) => {
     await AsyncStorage.setItem('lastUser', "false");
-    if (!state) {
-      await AsyncStorage.setItem('saveData', "false");
-      this.props.navigation.push('Login');
-    } else {
+    if (save) {
       await AsyncStorage.setItem('saveData', "true");
       this.props.navigation.navigate('Login');
+    } else {
+      await AsyncStorage.setItem('saveData', "false");
+      this.props.navigation.push('Login');
     }
   }
 
   logout = async () => {
-    const AsyncAlert = (title, msg) => new Promise((resolve) => {
+    const AsyncAlert = async () => new Promise((resolve) => {
       Alert.alert(
         "Procedo a desconectar",
-        "¿Mantengo tu identificación actual?",
+        "¿Mantengo su identificación actual?",
         [
           {
-            text: 'Sí',
+            text: "No",
             onPress: () => {
-              resolve(this.saveLogout(true));
+              resolve(this.saveLogout(false))
             },
           },
-          {
-            text: 'No',
+          { 
+            text: "Sí", 
             onPress: () => {
-              resolve(this.saveLogout(false));
-            },
-          },
-          {
-            text: 'Cancelar',
-            onPress: () => {
-              resolve('Cancel');
-            },
-          },
-        ],
-        { cancelable: false },
+              resolve(this.saveLogout(true))
+          }},
+          { text: "Cancelar", 
+          onPress: () => {
+            resolve()
+        },
+        style: "cancel"
+      }],
+        { cancelable: false }
       );
     });
-    
     await AsyncAlert();
+  }
+
+  print = async (url) => {
+    const downloadResumable = FileSystem.createDownloadResumable(
+      url,
+      FileSystem.documentDirectory + 'impresion.pdf',
+      {},
+    );
+    const { uri } = await downloadResumable.downloadAsync();
+    Print.printAsync({ uri: uri })
+  }
+
+  onBack() {
+    if (this.state.canGoBack) {
+      this.webView.ref.goBack();
+      return true;
+    } else {
+      this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.alias+"&user="+this.user+"&pass="+this.password })
+    }
   }
 
   render(){
     return(
       <View style={{flex: 1}}>
-      <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", 
-      flexDirection:'row', textAlignVertical: 'center'}}>
+      <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", flexDirection:'row', textAlignVertical: 'center'}}>
+        <Ionicons 
+            name="arrow-back" 
+            onPress={this.onBack.bind(this)}
+            size={35} 
+            color="white"
+            style={styles.navBarButton}
+          />
           <Ionicons 
-            name="home" 
-            onPress={this.goIndex}
-            size={25} 
+            name=""
+            size={35} 
             color="white"
             style={styles.navBarButton}
           />
@@ -110,6 +137,13 @@ class HomeScreen extends Component {
           <Ionicons 
             name="help-sharp" 
             onPress={this.goHelp}
+            size={35} 
+            color="white"
+            style={styles.navBarButton}
+          />
+          <Ionicons 
+            name="home" 
+            onPress={this.goIndex}
             size={30} 
             color="white"
             style={styles.navBarButton}
@@ -124,36 +158,36 @@ class HomeScreen extends Component {
           domStorageEnabled={true}
           setSupportMultipleWindows={false}
           allowsBackForwardNavigationGestures
+          allowUniversalAccessFromFileURLs
           onNavigationStateChange={(navState) => {
             this.setState({
               canGoBack: navState.canGoBack
             });
           }}
-          onError={err => {
-            this.setState({ err_code: err.nativeEvent.code })
-          }}
-          renderError={()=> {
-            if (this.state.err_code == -2){
-              return (
-                <View style={{ backgroundColor: "white", flex: 1, height:"100%", width: "100%", position:'absolute', justifyContent: "center", alignItems: "center" }}>
-                  <Text>No hay conexión a Internet</Text>
-                </View>
-              );
-            }
-          }}
           onShouldStartLoadWithRequest={(event) => {
-            if (event.url == "https://admin.dicloud.es/zca/login.asp?idempresa=") {
+            if (event.url.includes("login.asp")) {
               this.logout()
-              return false
-            } else if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps") || event.url.includes("facebook")) {
+              return false;
+            } else if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps")) {
               Linking.canOpenURL(event.url).then((value) => {
                 if (value) {
                   Linking.openURL(event.url)
                 }
               })
               return false
-            } else {
-              this.setState({ url: event.url })  
+            } else if (event.url.includes("facebook")) {
+              Linking.canOpenURL(event.url).then((value) => {
+                if (value) {
+                  Linking.openURL(event.url)
+                }
+              }) 
+              return false
+            } /*else if (event.url.includes("impresionqr")) {
+              this.print(event.url)
+              return false
+            }*/ else {
+              console.log(event.url)
+              this.setState({ url: event.url })
               return true
             }
           }}
@@ -171,23 +205,23 @@ class LoginScreen extends Component {
 
   async componentDidMount(){
     const saveData = await AsyncStorage.getItem('saveData').catch(() => {
-       saveData = "false";
-     });
-     if (saveData == "true") {
-        await AsyncStorage.getItem("alias").then((value) => {
-          this.alias = value;
-        })
-        this.setState({alias:this.alias})
-        await AsyncStorage.getItem("user").then((value) => {
-          this.user = value;
-        })
-        this.setState({user:this.user})
-        await AsyncStorage.getItem("password").then((value) => {
-          this.pass = value;
-        })
-        this.setState({pass:this.pass})
-     }
-   }
+      saveData = "false";
+    });
+    if (saveData == "true") {
+      await AsyncStorage.getItem("alias").then((value) => {
+        this.alias = value;
+      })
+      this.setState({alias:this.alias})
+      await AsyncStorage.getItem("user").then((value) => {
+        this.user = value;
+      })
+      this.setState({user:this.user})
+      await AsyncStorage.getItem("password").then((value) => {
+        this.password = value;
+      })
+      this.setState({password:this.password})
+    }
+  }
 
   showAlert = (message) => {
     Alert.alert(
@@ -232,26 +266,24 @@ class LoginScreen extends Component {
       this.showAlert(error);
   }
 
-  async goHome(alias,user,pass,fullname,idempresa,token) {
+  async goHome(alias,user,password,fullname,token) {
     await AsyncStorage.setItem('lastUser', "true");
     await AsyncStorage.setItem('alias', alias);
     await AsyncStorage.setItem('user', user);
-    await AsyncStorage.setItem('password', pass);
+    await AsyncStorage.setItem('password', password);
     await AsyncStorage.setItem('fullname', fullname);
-    await AsyncStorage.setItem('idempresa', idempresa + "");
     await AsyncStorage.setItem('token', token);
-    var url = "https://admin.dicloud.es/zca/loginverifica.asp?company="+alias+"&user="+user+"&pass="+pass.toLowerCase()
-    this.props.navigation.navigate('Home',{url:url})
+    this.props.navigation.navigate('Home')
   }
 
   login = () => {
     let alias=this.state.alias;
     let user=this.state.user;
-    let pass=this.state.pass;
-    if (alias != undefined && user != undefined && pass != undefined) {
+    let password=this.state.password;
+    if (alias != undefined && user != undefined && password != undefined) {
       const requestOptions = {
         method: 'POST',
-        body: JSON.stringify({aliasDb: alias, user: user, password: pass, appSource: "Disoft"})
+        body: JSON.stringify({aliasDb: alias, user: user, password: password, appSource: "Disoft"})
       };
       fetch('https://app.dicloud.es/login.asp', requestOptions)
         .then((response) => response.json())
@@ -260,12 +292,12 @@ class LoginScreen extends Component {
           if (error == 0) {
             let fullname = JSON.parse(JSON.stringify(responseJson.fullName))
             let token = JSON.parse(JSON.stringify(responseJson.token))
-            let idempresa = JSON.parse(JSON.stringify(responseJson.idempresa))
-            this.goHome(alias,user,pass,fullname,idempresa,token)
+            this.goHome(alias,user,password,fullname,token)
           } else {
             this.handleError(error)
           }
-        }).catch(() => {});
+        })
+        .catch(() => {});
     } else {
       this.showAlert("Complete todos los campos")
     }
@@ -273,26 +305,6 @@ class LoginScreen extends Component {
 
   managePasswordVisibility = () => {
     this.setState({ hidePassword: !this.state.hidePassword });
-  }
-
-  goRememberPass = async () => {
-    let alias = this.state.alias;
-    let user = this.state.user;
-    let idempresa = null;
-    await AsyncStorage.getItem("idempresa").then((value) => {
-      idempresa = value;
-    })
-    if (idempresa == null) {
-      if (alias == undefined || alias == "" || user == undefined || user == "" ) {
-        this.showAlert("Debe introducir su alias y usuario");
-      } else {
-        await AsyncStorage.setItem('alias', alias);
-        await AsyncStorage.setItem('user', user);
-        this.props.navigation.navigate('Remember')
-      }
-    } else {
-      this.props.navigation.navigate('Remember')
-    }
   }
   
   render() {
@@ -304,23 +316,23 @@ class LoginScreen extends Component {
         />
         <TextInput  
           style = { styles.textBox }
-          placeholder="Alias"  
-          onChangeText={(alias) => this.setState({alias})}  
+          placeholder="Alias"
           value={this.state.alias}
+          onChangeText={(alias) => this.setState({alias})}  
         /> 
         <TextInput  
           style = { styles.textBox }
           placeholder="Usuario"  
-          onChangeText={(user) => this.setState({user})}  
           value={this.state.user}
+          onChangeText={(user) => this.setState({user})}  
         /> 
         <View style = { styles.textBoxBtnHolder }>
           <TextInput  
             style = { styles.textBox }
             placeholder="Contraseña"
+            value={this.state.password}
             secureTextEntry = { this.state.hidePassword }
-            onChangeText={(pass) => this.setState({pass})}  
-            value={this.state.pass}
+            onChangeText={(password) => this.setState({password})}  
           />  
           <TouchableOpacity activeOpacity = { 0.8 } style = { styles.visibilityBtn } onPress = { this.managePasswordVisibility }>
               <Ionicons name={ ( this.state.hidePassword ) ? "eye"  : "eye-off" } size={32} color="#98A406" /> 
@@ -329,112 +341,50 @@ class LoginScreen extends Component {
         <TouchableOpacity onPress={this.login} style={styles.appButtonContainer}>
           <Text style={styles.appButtonText}>Entrar</Text>
         </TouchableOpacity>  
-        <TouchableOpacity  onPress={()=>this.goRememberPass()} style={{ margin: 30 }}>
+        <TouchableOpacity  onPress={()=>this.props.navigation.navigate('Remember')} style={{ margin: 30 }}>
           <Text style={{ color: "#98A406" }}>Recordar datos de acceso</Text>
-        </TouchableOpacity>  
-        <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", flexDirection:'row', textAlignVertical: 'center'}}>
-        <Text></Text>
-        <Text style={styles.date}>Versión 210113</Text>
-        </View>
+        </TouchableOpacity>   
       </View>
     );
   } 
 }
 
 class RememberPass extends Component {
-
-  idempresa = ""
-  alias = ""
-  user = ""
-  webView = {
-    ref: null,
+  sendMail = () => {
+    alert("Enviar correo");
   }
-
-  constructor(props) {
-    super(props);
-    this.state = {}
-  }
-
-  handleBackButton = ()=>{
-    this.props.navigation.navigate('Login')
-    return true;
-  }
-
-  async componentDidMount(){
-    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
-    await AsyncStorage.getItem("idempresa").then((value) => {
-      this.idempresa = value;
-    })
-    await AsyncStorage.getItem("alias").then((value) => {
-      this.alias = value;
-    })
-    await AsyncStorage.getItem("user").then((value) => {
-      this.user = value;
-    })
-    if (this.idempresa != null) {
-      this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?idempresa=" + this.idempresa })
-    } else {
-      this.setState({ url: "https://admin.dicloud.es/zca/enviapassmail.asp?alias=" + this.user.toLowerCase() + "&aliasemp=" + this.alias.toLowerCase() })
-    }
-  }
-
   render() {
     return (
-      <View style={{flex: 1}}>
-        <WebView
-          ref={(webView) => { this.webView.ref = webView; }}
-          originWhitelist={['*']}
-          source={{ uri: this.state.url }}
-          startInLoadingState={true}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          setSupportMultipleWindows={false}
-          allowsBackForwardNavigationGestures
-          onNavigationStateChange={(navState) => {
-            this.setState({
-              canGoBack: navState.canGoBack
-            });
-          }}
-          onError={err => {
-            this.setState({ err_code: err.nativeEvent.code })
-          }}
-          renderError={()=> {
-            if (this.state.err_code == -2){
-              return (
-                <View style={{ backgroundColor: "white", flex: 1, height:"100%", width: "100%", position:'absolute', justifyContent: "center", alignItems: "center" }}>
-                  <Text>No hay conexión a Internet</Text>
-                </View>
-              );
-            }
-          }}
-        />
+      <View style={ styles.container }>
+          <Text>Indique el correo de la empresa</Text>
+          <Text style={{margin:20}}>para obtener los datos de acceso a la plataforma</Text>
+          <TextInput  
+            style = { styles.textBox }
+            placeholder="Correo"  
+            onChangeText={(text) => this.setState({text})}  
+          /> 
+          <TouchableOpacity onPress={this.sendMail} style={styles.appButtonContainer}>
+          <Text style={styles.appButtonText}>Enviar</Text>
+        </TouchableOpacity>  
       </View>
     );
   }
 }
 
 class MainScreen extends Component {
+  lastUser = "false";
+
   constructor(props) {
     super(props);
     this.init()
   }
 
   init = async () => {
-    const lastUser = await AsyncStorage.getItem('lastUser').catch(() => {
-      lastUser = "false";
-    });
-    const alias = await AsyncStorage.getItem('alias').catch(() => {
-      alias = "";
-    });
-    const user = await AsyncStorage.getItem('user').catch(() => {
-      user = "";
-    });
-    const password = await AsyncStorage.getItem('password').catch(() => {
-      password = "";
-    });
-    if (lastUser == "true") {
-      var url = "https://admin.dicloud.es/zca/loginverifica.asp?company="+alias+"&user="+user+"&pass="+password.toLowerCase()
-      this.props.navigation.navigate('Home',{url:url})
+    await AsyncStorage.getItem('lastUser').then((value) => {
+      this.lastUser = value;
+    })
+    if (this.lastUser == "true") {
+      this.props.navigation.navigate('Home')
     } else {
       this.props.navigation.navigate('Login')
     }
@@ -457,25 +407,30 @@ const AppNavigator = createStackNavigator({
   Main: {
     screen: MainScreen,
     navigationOptions: {
-      header: null
+      headerShown: false
     }
   },
   Login: {
     screen: LoginScreen,
     navigationOptions: {
-      header: null
+      headerShown: false
     }
   },
   Remember: {
     screen: RememberPass,
     navigationOptions: {
-      header: null
-    }
+      title: "Recordar datos de acceso",
+      headerStyle: {
+        elevation: 0,
+        shadowOpacity: 0,
+        borderBottomWidth: 0,
+      }
+    },
   },
   Home: {
     screen: HomeScreen,
     navigationOptions: {
-      header: null
+      headerShown: false
     }
   },
 });
@@ -514,10 +469,6 @@ const styles = StyleSheet.create({
     height: 40,
     width: 35,
     padding: 2
-  },
-  date:{
-    color: "#98A406",
-    backgroundColor: "white"
   },
   appButtonContainer: {
     elevation: 8,
