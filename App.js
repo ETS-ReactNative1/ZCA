@@ -28,6 +28,7 @@ class HomeScreen extends Component {
     this.state = {
       url: this.props.navigation.state.params.url
     }
+    console.log(this.props.navigation.state.params.url)
     this.setWebview()
   } 
 
@@ -97,8 +98,7 @@ class HomeScreen extends Component {
   render(){
     return(
       <View style={{flex: 1}}>
-      <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", 
-      flexDirection:'row', textAlignVertical: 'center'}}>
+      <View style={styles.navBar}>
           <Ionicons 
             name="home" 
             onPress={this.goIndex}
@@ -240,7 +240,7 @@ class LoginScreen extends Component {
     await AsyncStorage.setItem('fullname', fullname);
     await AsyncStorage.setItem('idempresa', idempresa + "");
     await AsyncStorage.setItem('token', token);
-    var url = "https://admin.dicloud.es/zca/loginverifica.asp?company="+alias+"&user="+user+"&pass="+pass.toLowerCase()
+    var url = "https://admin.dicloud.es/zca/loginverifica.asp?company="+alias+"&user="+user+"&pass="+pass.toLowerCase()+"&movil=si"
     this.props.navigation.navigate('Home',{url:url})
   }
 
@@ -330,11 +330,11 @@ class LoginScreen extends Component {
           <Text style={styles.appButtonText}>Entrar</Text>
         </TouchableOpacity>  
         <TouchableOpacity  onPress={()=>this.goRememberPass()} style={{ margin: 30 }}>
-          <Text style={{ color: "#98A406" }}>Recordar datos de acceso</Text>
+          <Text style={{ color: "#98A406" }}>Olvidé contaseña</Text>
         </TouchableOpacity>  
         <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", flexDirection:'row', textAlignVertical: 'center'}}>
         <Text></Text>
-        <Text style={styles.date}>Versión 210113</Text>
+        <Text style={styles.date}>Versión 210223</Text>
         </View>
       </View>
     );
@@ -433,7 +433,7 @@ class MainScreen extends Component {
       password = "";
     });
     if (lastUser == "true") {
-      var url = "https://admin.dicloud.es/zca/loginverifica.asp?company="+alias+"&user="+user+"&pass="+password.toLowerCase()
+      var url = "https://admin.dicloud.es/zca/loginverifica.asp?company="+alias+"&user="+user+"&pass="+password.toLowerCase()+"&movil=si"
       this.props.navigation.navigate('Home',{url:url})
     } else {
       this.props.navigation.navigate('Login')
@@ -539,6 +539,16 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     textAlign:'center',
     width: 64
+  },
+  navBar:{
+    flexDirection:'row', 
+    textAlignVertical: 'center',
+    height: 50,
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    backgroundColor:"#1C538E", 
+    flexDirection:'row', 
+    textAlignVertical: 'center'
   },
   navBarHeader: {
     flex: 1,
