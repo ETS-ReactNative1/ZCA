@@ -145,7 +145,7 @@ class HomeScreen extends Component {
             if (event.url == "https://admin.dicloud.es/zca/login.asp?idempresa=") {
               this.logout()
               return false
-            } else if (event.url.includes("tel") || event.url.includes("mailto") || event.url.includes("maps") || event.url.includes("facebook")) {
+            } else if (event.url.includes("drive") || event.url.includes("tel:") || event.url.includes("mailto:") || event.url.includes("maps") || event.url.includes("facebook")) {
               Linking.canOpenURL(event.url).then((value) => {
                 if (value) {
                   Linking.openURL(event.url)
@@ -444,7 +444,7 @@ class MainScreen extends Component {
     return (
       <View style={styles.container}>
       <ActivityIndicator
-        color='#98A406'
+        color='#1C538E'
         size='large'
         style={styles.container}
       />
