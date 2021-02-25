@@ -334,7 +334,6 @@ class LoginScreen extends Component {
         </TouchableOpacity>  
         <View style={{alignItems: 'center', justifyContent: 'center', backgroundColor:"#337BB7", flexDirection:'row', textAlignVertical: 'center'}}>
         <Text></Text>
-        <Text style={styles.date}>Versión 210223</Text>
         </View>
       </View>
     );
@@ -342,7 +341,7 @@ class LoginScreen extends Component {
 }
 
 class RememberPass extends Component {
-
+  
   idempresa = ""
   alias = ""
   user = ""
