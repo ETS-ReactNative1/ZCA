@@ -82,9 +82,20 @@ export default createAppContainer(RememberPass);
 const styles = StyleSheet.create({
     noWifi: {
         backgroundColor: "white", flex: 1, height:"100%", width: "100%", position:'absolute', justifyContent: "center", alignItems: "center"
-    }
+    },
+    navBarButton: {
+      color: '#FFFFFF',
+      textAlign:'center',
+      width: 60
+    },
+    navBar:{
+      flexDirection:'row', 
+      textAlignVertical: 'center',
+      height: 50,
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      backgroundColor:"#1C538E", 
+      flexDirection:'row', 
+      textAlignVertical: 'center'
+    },
 })
-
-  
-
-  

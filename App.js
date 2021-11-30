@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
-import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image, Alert, ActivityIndicator, Linking } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import { createAppContainer } from 'react-navigation';
 import { createStackNavigator } from 'react-navigation-stack';
-import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-community/async-storage';
-import { BackHandler } from 'react-native';
 import Home from './Home'
 import Login from './Login'
 import RememberPass from './RememberPass'
@@ -20,15 +18,10 @@ class MainScreen extends Component {
 
   async init () {
     await AsyncStorage.getItem("lastUser").then((value) => {
-      if (value != null) {
-        this.setState({ lastUser: JSON.parse(value) })
-      }
+      if (value != null) this.setState({ lastUser: JSON.parse(value) })
     })
-    if (this.state.lastUser) {
-      this.props.navigation.push('Home')
-    } else {
-      this.props.navigation.push('Login')
-    }
+    if (this.state.lastUser) this.props.navigation.push('Home')
+    else this.props.navigation.push('Login')
   }
 
   render(){
@@ -48,13 +41,15 @@ const AppNavigator = createStackNavigator({
   Main: {
     screen: MainScreen,
     navigationOptions: {
-      header: null
+      header: null,
+      gestureEnabled: false
     }
   },
   Login: {
     screen: Login,
     navigationOptions: {
-      header: null
+      header: null,
+      gestureEnabled: false
     }
   },
   Remember: {
@@ -66,7 +61,8 @@ const AppNavigator = createStackNavigator({
   Home: {
     screen: Home,
     navigationOptions: {
-      header: null
+      header: null,
+      gestureEnabled: false
     }
   },
 });

@@ -3,39 +3,39 @@ import { StyleSheet, TextInput, View, TouchableOpacity, Text, Image, Alert } fro
 import { createAppContainer } from 'react-navigation';
 import AsyncStorage from '@react-native-community/async-storage';
 import { Icon } from 'react-native-elements'
+import { BackHandler } from 'react-native';
 
 class Login extends Component {  
+
     constructor(props) {
       super(props);
       this.state = { idempresa:"", alias:"", user:"", password:"", fullname:"", token:"", hidePassword: true }
       this.init()
     }
 
+    componentDidMount() {
+      BackHandler.addEventListener('hardwareBackPress', this.goBack);
+    }
+  
+    goBack = () => {
+      return true
+    }
+
     async init() {
       await AsyncStorage.getItem("saveData").then((value) => {
-        if (value != null) {
-          if (JSON.parse(value)) {
-            this.setUserData()
-          }
-        }
+        if (value != null && JSON.parse(value)) this.setUserData()
       })
     }
 
     async setUserData() {
       await AsyncStorage.getItem("alias").then((value) => {
-        if (value != null) {
-          this.setState({ alias: value })
-        }
+        if (value != null) this.setState({ alias: value })
       })
       await AsyncStorage.getItem("user").then((value) => {
-        if (value != null) {
-          this.setState({ user: value })
-        }
+        if (value != null) this.setState({ user: value })
       })
       await AsyncStorage.getItem("password").then((value) => {
-        if (value != null) {
-          this.setState({ password: value })
-        }
+        if (value != null) this.setState({ password: value })
       })
     }
   
@@ -82,8 +82,8 @@ class Login extends Component {
       this.props.navigation.push('Home')
     }
   
-    login(){
-      if (this.state.alias != undefined && this.state.user != undefined && this.state.password != undefined) {
+    async login(){
+      if (this.state.alias.length>0 && this.state.user.length>0 && this.state.password.length>0) {
         const requestOptions = {
           method: 'POST',
           body: JSON.stringify({aliasDb: this.state.alias, user: this.state.user, password: this.state.password, appSource: "Disoft"})
@@ -101,9 +101,8 @@ class Login extends Component {
               this.handleError(error)
             }
           }).catch(() => {});
-      } else {
-        this.showAlert("Complete todos los campos")
-      }
+      } else await this.showAlert("Complete todos los campos")
+      
     }
   
     managePasswordVisibility = () => {
@@ -115,8 +114,8 @@ class Login extends Component {
         this.state.idempresa = value;
       })
       if (this.state.idempresa == null) {
-        if (this.state.alias == undefined || this.state.alias == "" || this.state.user == undefined || this.state.user == "" ) {
-          this.showAlert("Debe introducir su alias y usuario");
+        if (this.state.alias.length==0 || this.state.user.length==0) {
+          this.showAlert("Debe introducir alias y usuario");
         } else {
           await AsyncStorage.setItem('alias', this.state.alias);
           await AsyncStorage.setItem('user', this.state.user);
@@ -126,25 +125,27 @@ class Login extends Component {
         this.props.navigation.push('Remember')
       }
     }
-    
-    /*
-              <Image
-            style={{ height: 100, width: 100, margin: 10 }}
-            source={require('./assets/icon.png')}
-          />
-    */
+
     render() {
       return (
         <View style={ styles.container }>
+          <View style={{paddingBottom: 20, alignSelf:"center"}}>
+          <Image
+            style={{ height: 100, width: 100, margin: 10}}
+            source={require('./assets/main.png')}
+          />
+          </View>
           <TextInput  
             style = { styles.textBox }
             placeholder="Alias"  
+            placeholderTextColor="lightgray"
             onChangeText={(alias) => this.setState({alias})}  
             value={this.state.alias}
           /> 
           <TextInput  
             style = { styles.textBox }
             placeholder="Usuario"  
+            placeholderTextColor="lightgray"
             onChangeText={(user) => this.setState({user})}  
             value={this.state.user}
           /> 
@@ -152,6 +153,7 @@ class Login extends Component {
             <TextInput  
               style = { styles.textBox }
               placeholder="Contraseña"
+              placeholderTextColor="lightgray"
               secureTextEntry = { this.state.hidePassword }
               onChangeText={(password) => this.setState({password})}  
               value={this.state.password}
@@ -185,7 +187,7 @@ class Login extends Component {
       flex: 1,
       backgroundColor: '#fff',
       alignItems: 'center',
-      justifyContent: 'center',
+      justifyContent: 'center'
     },
     textBox: {
       fontSize: 18,

@@ -1,11 +1,10 @@
-
 import React, { Component } from 'react';
-import { StyleSheet, View, Text, Alert, Linking } from 'react-native';
+import { StyleSheet, View, Text, Alert, Linking,SafeAreaView } from 'react-native';
 import { createAppContainer } from 'react-navigation';
 import { WebView } from 'react-native-webview';
 import AsyncStorage from '@react-native-community/async-storage';
 import { BackHandler } from 'react-native';
-import { Icon } from 'react-native-elements'
+import { Icon } from 'react-native-elements';
 
 class Home extends Component { 
 
@@ -26,47 +25,41 @@ class Home extends Component {
       this.init()
     } 
 
+    componentDidMount() {
+      BackHandler.addEventListener('hardwareBackPress', this.goBack);
+    }
+  
+    goBack = () => {
+      if (this.state.canGoBack) this.webView.ref.goBack()
+      return true
+    }
+    
     async init() {
       await AsyncStorage.getItem("alias").then((value) => {
-        if (value != null) {
-          this.setState({ alias: value })
-        }
+        if (value != null) this.setState({ alias: value })
       })
       await AsyncStorage.getItem("user").then((value) => {
-        if (value != null) {
-          this.setState({ user: value })
-        }
+        if (value != null) this.setState({ user: value })
       })
       await AsyncStorage.getItem("password").then((value) => {
-        if (value != null) {
-          this.setState({ password: value })
-        }
+        if (value != null) this.setState({ password: value })
       })
       await AsyncStorage.getItem("idempresa").then((value) => {
-        if (value != null) {
-          this.setState({ idempresa: value })
-        }
+        if (value != null)  this.setState({ idempresa: value })
       })
-      this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.state.alias+"&user="+this.state.user+"&pass="+this.state.password.toUpperCase()+"&idempresa="+this.state.idempresa+"&movil=si" })
+      await this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.state.alias+"&user="+this.state.user+"&pass="+this.state.password.toUpperCase()+"&idempresa="+this.state.idempresa+"&movil=si" })
     }
   
     componentDidMount() {
       BackHandler.addEventListener('hardwareBackPress', this.goBack);
    }
   
-   goBack = () => {
-      if (this.state.canGoBack) {
-        this.webView.ref.goBack()
-      }
-      return true
+    goIndex = async () => {
+      await this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.state.alias+"&user="+this.state.user+"&pass="+this.state.password.toUpperCase()+"&idempresa="+this.state.idempresa+"&movil=si" })
     }
   
-    goIndex = () => {
-      this.setState({ url: "https://admin.dicloud.es/zca/loginverifica.asp?company="+this.state.alias+"&user="+this.state.user+"&pass="+this.state.password.toUpperCase()+"&idempresa="+this.state.idempresa+"&movil=si" })
-    }
-  
-    goHelp = () => {
-      this.setState({ url: "https://admin.dicloud.es/zca/tutorial/index.html" })
+    goHelp = async () => {
+      await this.setState({ url: "https://admin.dicloud.es/zca/tutorial/index.html" })
     }
   
     saveLogout =  async (state) => {
@@ -106,12 +99,59 @@ class Home extends Component {
       await AsyncAlert();
     }
 
+    setFootbar() {
+      return(
+        <View style={styles.navBar}>
+        <Icon 
+            name="sign-out" 
+            type='font-awesome'
+            onPress={this.logout}
+            size={35} 
+            color="#1C538E"
+            style={styles.navBarButton}
+          />
+          <Icon 
+            name="home" 
+            type='font-awesome'
+            size={35} 
+            color="white"
+            style={styles.navBarButton}
+          />
+          <Icon 
+            name="home" 
+            type='font-awesome'
+            onPress={this.goIndex}
+            size={35} 
+            color="#1C538E"
+            style={styles.navBarButton}
+          />
+          <Icon 
+            name="home" 
+            type='font-awesome'
+            size={35} 
+            color="white"
+            style={styles.navBarButton}
+          />
+          <Icon 
+            name="info" 
+            type='font-awesome'
+            onPress={this.goHelp}
+            size={35} 
+            color="#1C538E"
+            style={styles.navBarButton}
+          />
+        </View>
+      )
+    }
+
     render(){
       return(
-        <View style={{flex: 1}}>
+        <SafeAreaView style={{flex: 1,backgroundColor:"white"}}>
+        <View style={{flex: 1 }}>
           <WebView
+            style={{flex: 1 }}
             ref={(webView) => { this.webView.ref = webView; }}
-            originWhitelist={['http://*', 'https://*' ]}
+            originWhitelist={['http://*', 'https://*']}
             source={{ uri: this.state.url }}
             startInLoadingState={true}
             javaScriptEnabled={true}
@@ -144,7 +184,7 @@ class Home extends Component {
                 if (event.url == "https://admin.dicloud.es/zca/login.asp?idempresa=") {
                   this.logout()
                   return false
-                } else if (event.url.includes("drive") || event.url.includes("tel:") || event.url.includes("mailto:") || event.url.includes("maps") || event.url.includes("facebook")) {
+                } else if (event.url.includes("www") || event.url.includes("drive") || event.url.includes("tel:") || event.url.includes("mailto:") || event.url.includes("maps") || event.url.includes("facebook")) {
                   Linking.canOpenURL(event.url).then((value) => {
                     if (value) {
                       Linking.openURL(event.url)
@@ -158,61 +198,23 @@ class Home extends Component {
               }
             }}
           />
-          <View style={styles.navBar}>
-          <Icon 
-              name="sign-out" 
-              type='font-awesome'
-              onPress={this.logout}
-              size={35} 
-              color="white"
-              style={styles.navBarButton}
-            />
-            <Icon 
-              name="home" 
-              type='font-awesome'
-              size={35} 
-              color="#1C538E"
-              style={styles.navBarButton}
-            />
-            <Icon 
-              name="home" 
-              type='font-awesome'
-              onPress={this.goIndex}
-              size={35} 
-              color="white"
-              style={styles.navBarButton}
-            />
-            <Icon 
-              name="home" 
-              type='font-awesome'
-              size={35} 
-              color="#1C538E"
-              style={styles.navBarButton}
-            />
-            <Icon 
-              name="info" 
-              type='font-awesome'
-              onPress={this.goHelp}
-              size={35} 
-              color="white"
-              style={styles.navBarButton}
-            />
-          </View>
+          {this.setFootbar()}
       </View>
+      </SafeAreaView>
       )
     }
   }
 
   export default createAppContainer(Home);
 
-  const styles = StyleSheet.create({
+  const styles = StyleSheet.create ({
     navBar:{
       flexDirection:'row', 
       textAlignVertical: 'center',
       height: 50,
       alignItems: 'center', 
       justifyContent: 'center', 
-      backgroundColor:"#1C538E", 
+      backgroundColor:"white", 
       flexDirection:'row', 
       textAlignVertical: 'center'
     },
